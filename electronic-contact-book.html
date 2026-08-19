@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三年級電子聯絡本</title>
+<style>
+  :root{
+    --font-kai:'DFKai-SB','BiauKai','Kaiti TC','STKaiti','KaiTi',cursive,'Noto Sans TC',sans-serif;
+    --paper:#FFFCF3;
+    --yellow:#FFF3B0;
+    --yellow-deep:#F7E27A;
+    --yellow-border:#E4BE4A;
+    --green:#8FCB7E;
+    --green-deep:#5CA648;
+    --sky:#8FD8E8;
+    --sky-deep:#3FA8C0;
+    --pink:#FFB4C6;
+    --red:#FF7F66;
+    --red-deep:#D9532F;
+    --ink:#6B4A2B;
+    --ink-soft:#9A7B54;
+    --white:#FFFFFF;
+    --cell-line:#E4C77A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:radial-gradient(var(--yellow-border) 1px, transparent 1px);
+    background-size:26px 26px;
+    background-position:-6px -6px;
+    font-family:var(--font-kai);
+    color:var(--ink);
+    padding:24px 12px 80px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+
+  .header{
+    background:var(--yellow);
+    border:3px solid var(--ink);
+    border-radius:20px;
+    padding:20px 22px;
+    box-shadow:6px 6px 0 var(--yellow-border);
+    position:relative;
+    overflow:hidden;
+    margin-bottom:22px;
+  }
+  .header::after{
+    content:"";
+    position:absolute;
+    right:-30px; top:-30px;
+    width:110px; height:110px;
+    background:var(--sky);
+    border-radius:50%;
+    opacity:.5;
+  }
+  .header h1{
+    font-family:var(--font-kai);
+    font-size:26px;
+    margin:0 0 4px;
+    position:relative;
+    z-index:1;
+    text-align:center;
+  }
+  .header .sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    position:relative;
+    z-index:1;
+    text-align:center;
+  }
+  .header h1 input{
+    font-family:var(--font-kai);
+    font-size:26px;
+    font-weight:700;
+    border:none;
+    border-bottom:2px dashed var(--ink);
+    background:transparent;
+    color:var(--ink);
+    outline:none;
+    width:160px;
+  }
+
+  .toolbar{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:8px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .role-badge{
+    font-size:12px;
+    padding:5px 10px;
+    border-radius:999px;
+    background:var(--sky);
+    border:2px solid var(--sky-deep);
+    color:#0d4a57;
+    font-weight:700;
+  }
+  .role-badge.editor{background:var(--green);border-color:var(--green-deep);color:#1c4a12;}
+  .btn{
+    font-family:var(--font-kai);
+    font-size:13px;
+    font-weight:700;
+    border-radius:999px;
+    padding:8px 16px;
+    border:2px solid var(--ink);
+    background:var(--white);
+    cursor:pointer;
+  }
+  .btn:active{transform:scale(0.96);}
+  .btn.primary{background:var(--green);}
+  .btn.danger{background:var(--red);color:#fff;border-color:var(--red-deep);}
+  .btn.ghost{background:transparent;}
+  .btn.small{padding:5px 10px;font-size:12px;}
+
+  .pin-box{
+    display:flex;
+    gap:6px;
+    align-items:center;
+    background:var(--white);
+    border:2px solid var(--ink);
+    border-radius:999px;
+    padding:4px 6px 4px 12px;
+  }
+  .pin-box input{width:70px;border:none;outline:none;font-size:14px;letter-spacing:2px;}
+  .pin-msg{font-size:12px;color:var(--red-deep);width:100%;text-align:right;}
+
+  .add-card{
+    border:3px dashed var(--green-deep);
+    border-radius:18px;
+    padding:16px;
+    text-align:center;
+    color:var(--green-deep);
+    font-weight:700;
+    cursor:pointer;
+    margin-bottom:18px;
+    background:rgba(143,203,126,0.12);
+  }
+  .add-card:hover{background:rgba(143,203,126,0.22);}
+
+  .form-panel{
+    background:var(--white);
+    border:3px solid var(--ink);
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:18px;
+    box-shadow:5px 5px 0 var(--yellow-border);
+  }
+  .form-panel h3{font-family:var(--font-kai);margin:0 0 12px;font-size:19px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:4px;color:var(--ink-soft);}
+  .field input[type="date"]{
+    border:2px solid var(--yellow-border);
+    border-radius:10px;
+    padding:8px 10px;
+    font-size:14px;
+    background:#FFFDF3;
+  }
+  .field textarea{
+    width:100%;
+    border:2px solid var(--yellow-border);
+    border-radius:10px;
+    padding:8px 10px;
+    font-family:var(--font-kai);
+    font-size:14px;
+    resize:vertical;
+    background:#FFFDF3;
+    min-height:44px;
+  }
+  .hint{font-size:12px;color:var(--ink-soft);margin:0 0 10px;}
+  .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;}
+
+  .cols-editor{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
+  .col-edit{min-width:150px;flex:0 0 auto;}
+  .col-edit-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .col-edit-head span{font-size:12px;font-weight:700;color:var(--ink-soft);}
+  .add-col-btn{
+    align-self:flex-start;
+    margin-top:24px;
+    flex:0 0 auto;
+    height:40px;
+    border-radius:10px;
+    border:2px dashed var(--green-deep);
+    background:rgba(143,203,126,0.12);
+    color:var(--green-deep);
+    font-weight:700;
+    padding:0 14px;
+    cursor:pointer;
+  }
+
+  .day-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .nav-btn{
+    font-family:var(--font-kai);
+    font-size:14px;
+    font-weight:700;
+    border-radius:999px;
+    padding:8px 18px;
+    border:3px solid var(--ink);
+    background:var(--yellow);
+    cursor:pointer;
+    box-shadow:3px 3px 0 var(--yellow-border);
+    white-space:nowrap;
+  }
+  .nav-btn:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--yellow-border);}
+  .nav-btn:disabled{
+    opacity:.35;
+    cursor:default;
+    box-shadow:none;
+  }
+  .day-indicator{
+    text-align:center;
+    font-size:14px;
+    color:var(--ink-soft);
+    font-weight:700;
+  }
+
+  .empty{text-align:center;padding:50px 20px;color:var(--ink-soft);}
+  .empty .big{font-size:40px;margin-bottom:8px;}
+  .empty p{font-size:14px;margin:4px 0;}
+
+  .entry{
+    background:var(--yellow);
+    border:3px solid var(--ink);
+    border-radius:20px;
+    margin-bottom:24px;
+    box-shadow:6px 6px 0 var(--yellow-border);
+    overflow:hidden;
+  }
+  .entry-header{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    background:var(--paper);
+    border-bottom:3px solid var(--ink);
+    padding:10px 16px;
+    min-height:44px;
+    position:relative;
+  }
+  .entry-header h2{
+    font-family:var(--font-kai);
+    font-size:17px;
+    margin:0;
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    white-space:nowrap;
+  }
+  .entry-actions{display:flex;gap:6px;}
+  .icon-btn{
+    width:32px;height:32px;
+    border-radius:50%;
+    border:2px solid var(--ink);
+    background:var(--white);
+    cursor:pointer;
+    font-size:14px;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .entry-body{display:flex;}
+  .grid-scroll{flex:1;overflow-x:auto;overflow-y:hidden;}
+  .grid-cols{display:flex;flex-direction:row-reverse;}
+  .grid-col{
+    width:56px;
+    flex:0 0 56px;
+    border-right:1px solid var(--cell-line);
+  }
+  .grid-col .num{
+    text-align:center;
+    font-family:var(--font-kai);
+    font-weight:700;
+    font-size:18px;
+    padding:7px 0;
+    border-bottom:2px solid var(--ink);
+    background:var(--yellow-deep);
+  }
+  .grid-cell{
+    height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-bottom:1px solid var(--cell-line);
+    font-size:24px;
+    background:var(--paper);
+  }
+  .date-side{
+    width:96px;
+    flex:0 0 96px;
+    border-left:2px solid var(--ink);
+    display:flex;
+    flex-direction:column;
+  }
+  .date-side .drow{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    border-bottom:1px solid var(--cell-line);
+    text-align:center;
+    padding:4px 2px;
+  }
+  .date-side .drow:last-child{border-bottom:none;}
+  .date-side .dval{font-family:var(--font-kai);font-size:30px;line-height:1.1;color:var(--red-deep);}
+  .date-side .dlab{font-size:14px;color:var(--ink-soft);margin-top:2px;}
+  .date-side .drow.weekday .dval{
+    writing-mode:vertical-rl;
+    text-orientation:upright;
+    font-size:24px;
+    letter-spacing:4px;
+    line-height:1.3;
+    color:var(--ink);
+  }
+  .date-side .drow.weekday .wday{color:var(--red-deep);}
+
+  .note-box{
+    margin:0;
+    padding:10px 16px;
+    background:rgba(255,255,255,0.55);
+    border-top:2px dashed var(--ink);
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .note-box b{color:var(--ink);}
+
+  .footer-note{text-align:center;font-size:12px;color:var(--ink-soft);margin-top:24px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1 id="headerTitle">三年甲班電子聯絡本</h1>
+    <div class="sub">今天的功課和明天應帶物品，照著格子抄下來就對了</div>
+  </div>
+
+  <div class="toolbar" id="toolbar"></div>
+
+  <div id="addArea"></div>
+  <div id="formArea"></div>
+  <div id="list"></div>
+
+  <div class="footer-note">所有打開此頁面的人都能即時看到最新內容，僅老師可以編輯唷 🌟</div>
+</div>
+
+<script>
+const EDITOR_PIN = "19941122";
+// 老師：第一次使用時，打開頁面後點「建立我的聯絡本資料庫」按鈕，
+// 系統會給你一組 ID，把它貼在下面這一行的引號中間，存檔後重新上傳，
+// 之後所有人打開這個網址看到的都會是同一份資料。
+const KVDB_BUCKET = "";
+
+const MIN_ROWS = 9;
+let isEditor = false;
+let entries = [];
+let className = "三年甲班";
+let editingId = null;
+let formOpen = false;
+let draftColumns = [];
+let draftDate = "";
+let draftNote = "";
+let currentIndex = 0;
+let dataReady = false;
+
+const weekdayZh = ["日","一","二","三","四","五","六"];
+
+function normalizeEntry(e){
+  if(!e || !e.date) return null;
+  let columns = Array.isArray(e.columns) ? e.columns : null;
+  if(!columns){
+    columns = [];
+    if(Array.isArray(e.homework) && e.homework.length) columns.push(e.homework);
+    if(Array.isArray(e.items) && e.items.length) columns.push(e.items);
+  }
+  columns = columns.map(c=> Array.isArray(c) ? c.filter(x=>typeof x==="string" && x.trim().length>0) : []).filter(c=>c.length>0);
+  return {
+    id: e.id || (Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+    date: e.date,
+    columns: columns.length ? columns : [[]],
+    note: typeof e.note === "string" ? e.note : ""
+  };
+}
+
+function rocParts(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  return { roc: d.getFullYear()-1911, m: d.getMonth()+1, day: d.getDate(), wd: weekdayZh[d.getDay()] };
+}
+
+async function loadAll(){
+  if(!KVDB_BUCKET){ renderSetupScreen(); return; }
+  try{
+    const res = await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`);
+    if(res.ok){
+      const text = await res.text();
+      const parsed = text ? JSON.parse(text) : {};
+      const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
+      entries = raw.map(normalizeEntry).filter(Boolean);
+      if(parsed.className) className = parsed.className;
+    }
+  }catch(err){
+    entries = [];
+  }
+  dataReady = true;
+  render();
+}
+
+async function persist(){
+  try{
+    await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`, {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ entries, className })
+    });
+  }catch(err){
+    alert("儲存失敗，請檢查網路連線後再試一次");
+  }
+}
+
+async function saveEntries(){ await persist(); }
+
+async function saveClassName(name){
+  className = name;
+  await persist();
+  render();
+}
+
+async function createDatabase(){
+  const btn = document.getElementById("createDbBtn");
+  if(btn){ btn.disabled = true; btn.textContent = "建立中…"; }
+  try{
+    const createRes = await fetch("https://kvdb.io/", {
+      method: "POST",
+      headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      body: "email=contact-book@example.com"
+    });
+    if(!createRes.ok) throw new Error("create failed");
+    const bucketId = (await createRes.text()).trim();
+    await fetch(`https://kvdb.io/${bucketId}/data`, {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ entries: [], className: "三年甲班" })
+    });
+    showSetupResult(bucketId);
+  }catch(err){
+    const box = document.getElementById("setupArea");
+    if(box){
+      box.innerHTML += `<p style="color:var(--red-deep);font-size:13px;">建立失敗，請檢查網路連線後再按一次試試看。</p>`;
+    }
+    if(btn){ btn.disabled=false; btn.textContent = "➕ 建立我的聯絡本資料庫"; }
+  }
+}
+
+function showSetupResult(bucketId){
+  const box = document.getElementById("setupArea");
+  box.innerHTML = `
+    <div class="form-panel">
+      <h3>✅ 資料庫建立成功！</h3>
+      <p class="hint">請把下面這組 ID 複製起來，貼到程式碼裡 <code>const KVDB_BUCKET = ""</code> 的引號中間，存檔後重新上傳到 GitHub，就完成囉！之後大家打開連結看到的都會是同一份資料。</p>
+      <div class="field">
+        <input id="bucketIdOut" value="${bucketId}" readonly style="width:100%;font-size:15px;padding:8px 10px;border:2px solid var(--yellow-border);border-radius:10px;background:#FFFDF3;">
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" id="copyBucketBtn">複製 ID</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("copyBucketBtn").onclick = ()=>{
+    const input = document.getElementById("bucketIdOut");
+    input.select();
+    navigator.clipboard && navigator.clipboard.writeText(bucketId);
+    document.getElementById("copyBucketBtn").textContent = "已複製！";
+  };
+}
+
+function renderSetupScreen(){
+  document.getElementById("toolbar").innerHTML = "";
+  document.getElementById("addArea").innerHTML = "";
+  document.getElementById("formArea").innerHTML = "";
+  document.getElementById("list").innerHTML = `
+    <div id="setupArea">
+      <div class="form-panel">
+        <h3>🌱 第一次使用，先建立資料庫</h3>
+        <p class="hint">只有第一次上架需要做這個步驟。點一下按鈕，系統會建立一個免登入、免費的雲端儲存空間，之後老師編輯的內容都會存在這裡，所有人打開連結都能看到同步的最新內容。</p>
+        <div class="form-actions" style="justify-content:flex-start;">
+          <button class="btn primary" id="createDbBtn">➕ 建立我的聯絡本資料庫</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById("createDbBtn").onclick = createDatabase;
+}
+
+function renderToolbar(){
+  const bar = document.getElementById("toolbar");
+  if(isEditor){
+    bar.innerHTML = `
+      <span class="role-badge editor">🔓 老師編輯模式</span>
+      <button class="btn ghost" id="logoutBtn">結束編輯</button>
+    `;
+    document.getElementById("logoutBtn").onclick = ()=>{ isEditor=false; formOpen=false; editingId=null; render(); };
+  }else{
+    bar.innerHTML = `
+      <span class="role-badge">👀 檢視模式</span>
+      <div class="pin-box">
+        <input type="password" id="pinInput" placeholder="老師密碼" maxlength="8">
+        <button class="btn" id="pinBtn">登入</button>
+      </div>
+    `;
+    document.getElementById("pinBtn").onclick = tryLogin;
+    document.getElementById("pinInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") tryLogin(); });
+  }
+}
+
+function tryLogin(){
+  const val = document.getElementById("pinInput").value;
+  if(val === EDITOR_PIN){ isEditor = true; render(); }
+  else{
+    const bar = document.getElementById("toolbar");
+    if(!bar.querySelector(".pin-msg")){
+      const msg = document.createElement("div");
+      msg.className = "pin-msg";
+      msg.textContent = "密碼不對唷，再試一次";
+      bar.appendChild(msg);
+    }
+  }
+}
+
+function renderClassName(){
+  const box = document.getElementById("headerTitle");
+  if(isEditor){
+    box.innerHTML = `<input id="classInput" value="${className.replace(/"/g,'&quot;')}" placeholder="輸入班級名稱">電子聯絡本`;
+    document.getElementById("classInput").addEventListener("change", (e)=> saveClassName(e.target.value || "三年甲班"));
+  }else{
+    box.textContent = `${className}電子聯絡本`;
+  }
+}
+
+function renderAddArea(){
+  const area = document.getElementById("addArea");
+  if(!isEditor || formOpen){ area.innerHTML=""; return; }
+  area.innerHTML = `<div class="add-card" id="openFormBtn">➕ 新增今天的紀錄</div>`;
+  document.getElementById("openFormBtn").onclick = ()=> openForm(null);
+}
+
+function openForm(entry){
+  editingId = entry ? entry.id : null;
+  formOpen = true;
+  draftDate = entry ? entry.date : new Date().toISOString().slice(0,10);
+  draftColumns = entry && Array.isArray(entry.columns) && entry.columns.length ? entry.columns.map(c=>[...c]) : [[],[],[]];
+  draftNote = entry ? (entry.note || "") : "";
+  renderForm();
+  renderAddArea();
+}
+
+function renderForm(){
+  const area = document.getElementById("formArea");
+  area.innerHTML = `
+    <div class="form-panel">
+      <h3>${editingId ? "✏️ 編輯這一天的聯絡事項" : "📝 新增聯絡事項"}</h3>
+      <div class="field">
+        <label>日期</label>
+        <input type="date" id="fDate" value="${draftDate}">
+      </div>
+      <div class="field">
+        <label>逐格內容（每一欄是抄寫本上的一直行，每一行文字會變成一格）</label>
+        <p class="hint">學生會照著這些欄位、一格一格抄到自己的聯絡簿上，欄位順序就是抄寫順序。</p>
+        <div class="cols-editor" id="colsEditor"></div>
+      </div>
+      <div class="field">
+        <label>老師補充說明（選填，不算在抄寫格內）</label>
+        <textarea id="fNote" style="min-height:44px;" placeholder="給家長的提醒">${escapeHtml(draftNote)}</textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn ghost" id="cancelFormBtn">取消</button>
+        <button class="btn primary" id="saveFormBtn">${editingId ? "儲存修改" : "新增紀錄"}</button>
+      </div>
+    </div>
+  `;
+  renderColsEditor();
+  document.getElementById("fDate").addEventListener("change", e=> draftDate = e.target.value);
+  document.getElementById("fNote").addEventListener("input", e=> draftNote = e.target.value);
+  document.getElementById("cancelFormBtn").onclick = closeForm;
+  document.getElementById("saveFormBtn").onclick = submitForm;
+}
+
+function renderColsEditor(){
+  const wrap = document.getElementById("colsEditor");
+  wrap.innerHTML = draftColumns.map((col, i)=>`
+    <div class="col-edit">
+      <div class="col-edit-head">
+        <span>第 ${i+1} 欄</span>
+        ${draftColumns.length>1 ? `<button class="btn small ghost" data-remove-col="${i}">刪除</button>` : ``}
+      </div>
+      <textarea data-col="${i}" placeholder="每行一格，例如：\n數習\n20\n21">${escapeHtml(col.join("\n"))}</textarea>
+    </div>
+  `).join("") + `<button class="add-col-btn" id="addColBtn">＋ 新增一欄</button>`;
+
+  wrap.querySelectorAll("textarea[data-col]").forEach(ta=>{
+    ta.addEventListener("input", e=>{
+      const idx = parseInt(e.target.dataset.col, 10);
+      draftColumns[idx] = e.target.value.split("\n").map(s=>s.trim()).filter(Boolean);
+    });
+  });
+  wrap.querySelectorAll("[data-remove-col]").forEach(btn=>{
+    btn.onclick = ()=>{
+      draftColumns.splice(parseInt(btn.dataset.removeCol,10), 1);
+      renderColsEditor();
+    };
+  });
+  document.getElementById("addColBtn").onclick = ()=>{
+    draftColumns.push([]);
+    renderColsEditor();
+  };
+}
+
+function closeForm(){
+  formOpen = false; editingId = null;
+  document.getElementById("formArea").innerHTML = "";
+  renderAddArea();
+}
+
+async function submitForm(){
+  if(!draftDate){ alert("請選擇日期唷"); return; }
+  const cleanCols = draftColumns.map(c=>c.filter(x=>x.trim().length>0)).filter(c=>c.length>0);
+  if(cleanCols.length===0){ alert("請至少填寫一欄內容"); return; }
+
+  if(editingId){
+    const idx = entries.findIndex(e=>e.id===editingId);
+    if(idx>-1) entries[idx] = {...entries[idx], date:draftDate, columns:cleanCols, note:draftNote.trim()};
+  }else{
+    entries.push({
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      date: draftDate, columns: cleanCols, note: draftNote.trim()
+    });
+  }
+  await saveEntries();
+  currentIndex = 0;
+  closeForm();
+  render();
+}
+
+async function deleteEntry(id){
+  if(!confirm("確定要刪除這則紀錄嗎？")) return;
+  entries = entries.filter(e=>e.id!==id);
+  await saveEntries();
+  render();
+}
+
+function renderList(){
+  const list = document.getElementById("list");
+  const sorted = [...entries].sort((a,b)=> b.date.localeCompare(a.date));
+
+  if(sorted.length===0){
+    list.innerHTML = `
+      <div class="empty">
+        <div class="big">🌻</div>
+        <p>還沒有聯絡簿紀錄唷</p>
+        <p>${isEditor ? "點選上方「新增今天的紀錄」開始寫吧！" : "請等老師更新今天的內容"}</p>
+      </div>`;
+    return;
+  }
+
+  if(currentIndex > sorted.length-1) currentIndex = sorted.length-1;
+  if(currentIndex < 0) currentIndex = 0;
+  const e = sorted[currentIndex];
+  const p = rocParts(e.date);
+
+  const navHtml = `
+    <div class="day-nav">
+      <button class="nav-btn" id="prevDayBtn" ${currentIndex>=sorted.length-1 ? "disabled" : ""}>◀ 前一天</button>
+      <div class="day-indicator">民國${p.roc}年${p.m}月${p.day}日　星期${p.wd}　(第 ${currentIndex+1} / ${sorted.length} 筆)</div>
+      <button class="nav-btn" id="nextDayBtn" ${currentIndex<=0 ? "disabled" : ""}>後一天 ▶</button>
+    </div>
+  `;
+
+  const cols = Array.isArray(e.columns) && e.columns.length ? e.columns : [[]];
+  const maxRows = Math.max(MIN_ROWS, ...cols.map(c=>c.length));
+  const colsHtml = cols.map((col, ci)=>{
+    let cells = "";
+    for(let r=0;r<maxRows;r++){
+      cells += `<div class="grid-cell">${col[r] ? escapeHtml(col[r]) : ""}</div>`;
+    }
+    return `<div class="grid-col"><div class="num">${ci+1}</div>${cells}</div>`;
+  }).join("");
+
+  const cardHtml = `
+    <div class="entry">
+      <div class="entry-header">
+        <h2>今天的功課和明天應帶物品</h2>
+        ${isEditor ? `
+          <div class="entry-actions">
+            <button class="icon-btn" title="編輯" data-edit="${e.id}">✏️</button>
+            <button class="icon-btn" title="刪除" data-del="${e.id}">🗑️</button>
+          </div>` : ``}
+      </div>
+      <div class="entry-body">
+        <div class="grid-scroll">
+          <div class="grid-cols" style="height:${34 + maxRows*46}px;">${colsHtml}</div>
+        </div>
+        <div class="date-side">
+          <div class="drow"><div class="dval">${p.roc}</div><div class="dlab">年</div></div>
+          <div class="drow"><div class="dval">${p.m}</div><div class="dlab">月</div></div>
+          <div class="drow"><div class="dval">${p.day}</div><div class="dlab">日</div></div>
+          <div class="drow weekday"><div class="dval"><span class="wlabel">星期</span><span class="wday">${p.wd}</span></div></div>
+        </div>
+      </div>
+      ${e.note ? `<div class="note-box"><b>老師補充：</b>${escapeHtml(e.note)}</div>` : ``}
+    </div>
+  `;
+
+  list.innerHTML = navHtml + cardHtml;
+
+  const prevBtn = document.getElementById("prevDayBtn");
+  const nextBtn = document.getElementById("nextDayBtn");
+  if(prevBtn) prevBtn.onclick = ()=>{ currentIndex++; render(); };
+  if(nextBtn) nextBtn.onclick = ()=>{ currentIndex--; render(); };
+
+  list.querySelectorAll("[data-edit]").forEach(btn=>{
+    btn.onclick = ()=>{ openForm(entries.find(x=>x.id===btn.dataset.edit)); window.scrollTo({top:0, behavior:"smooth"}); };
+  });
+  list.querySelectorAll("[data-del]").forEach(btn=>{
+    btn.onclick = ()=> deleteEntry(btn.dataset.del);
+  });
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+function render(){
+  renderToolbar();
+  renderClassName();
+  renderAddArea();
+  renderList();
+}
+
+loadAll();
+</script>
+</body>
+</html>
