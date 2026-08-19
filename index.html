@@ -354,7 +354,7 @@
 <script>
 const EDITOR_PIN = "19941122";
 // 老師：這裡已經幫你填好資料庫的位置了，不需要再更動。
-const KVDB_BUCKET = "P9SR6pKh6EknVysHWtcRRG";
+const FIREBASE_DB_URL = "https://contact-book-9f352-default-rtdb.firebaseio.com";
 
 const MIN_ROWS = 9;
 let isEditor = false;
@@ -394,13 +394,14 @@ function rocParts(dateStr){
 
 async function loadAll(){
   try{
-    const res = await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`);
+    const res = await fetch(`${FIREBASE_DB_URL}/contactbook.json?t=${Date.now()}`, { cache: "no-store" });
     if(res.ok){
-      const text = await res.text();
-      const parsed = text ? JSON.parse(text) : {};
-      const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
-      entries = raw.map(normalizeEntry).filter(Boolean);
-      if(parsed.className) className = parsed.className;
+      const parsed = await res.json();
+      if(parsed){
+        const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
+        entries = raw.map(normalizeEntry).filter(Boolean);
+        if(parsed.className) className = parsed.className;
+      }
     }
   }catch(err){
     entries = [];
@@ -411,11 +412,14 @@ async function loadAll(){
 
 async function persist(){
   try{
-    await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`, {
+    const res = await fetch(`${FIREBASE_DB_URL}/contactbook.json`, {
       method: "PUT",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ entries, className })
     });
+    if(!res.ok){
+      alert("儲存失敗（伺服器回應錯誤），請重新整理頁面後再試一次");
+    }
   }catch(err){
     alert("儲存失敗，請檢查網路連線後再試一次");
   }
