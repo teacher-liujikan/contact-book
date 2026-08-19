@@ -354,9 +354,9 @@
 <script>
 const EDITOR_PIN = "19941122";
 // 老師：第一次使用時，打開頁面後點「建立我的聯絡本資料庫」按鈕，
-// 系統會給你一組 ID，把它貼在下面這一行的引號中間，存檔後重新上傳，
+// 系統會給你一組網址，把它貼在下面這一行的引號中間，存檔後重新上傳，
 // 之後所有人打開這個網址看到的都會是同一份資料。
-const KVDB_BUCKET = "";
+const STORAGE_URI = "";
 
 const MIN_ROWS = 9;
 let isEditor = false;
@@ -395,12 +395,11 @@ function rocParts(dateStr){
 }
 
 async function loadAll(){
-  if(!KVDB_BUCKET){ renderSetupScreen(); return; }
+  if(!STORAGE_URI){ renderSetupScreen(); return; }
   try{
-    const res = await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`);
+    const res = await fetch(STORAGE_URI);
     if(res.ok){
-      const text = await res.text();
-      const parsed = text ? JSON.parse(text) : {};
+      const parsed = await res.json();
       const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
       entries = raw.map(normalizeEntry).filter(Boolean);
       if(parsed.className) className = parsed.className;
@@ -414,7 +413,7 @@ async function loadAll(){
 
 async function persist(){
   try{
-    await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`, {
+    await fetch(STORAGE_URI, {
       method: "PUT",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ entries, className })
@@ -436,19 +435,14 @@ async function createDatabase(){
   const btn = document.getElementById("createDbBtn");
   if(btn){ btn.disabled = true; btn.textContent = "建立中…"; }
   try{
-    const createRes = await fetch("https://kvdb.io/", {
+    const createRes = await fetch("https://api.jsonstorage.net/v1/json", {
       method: "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body: "email=contact-book@example.com"
-    });
-    if(!createRes.ok) throw new Error("create failed");
-    const bucketId = (await createRes.text()).trim();
-    await fetch(`https://kvdb.io/${bucketId}/data`, {
-      method: "PUT",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ entries: [], className: "三年甲班" })
     });
-    showSetupResult(bucketId);
+    if(!createRes.ok) throw new Error("create failed");
+    const data = await createRes.json();
+    showSetupResult(data.uri);
   }catch(err){
     const box = document.getElementById("setupArea");
     if(box){
@@ -458,24 +452,24 @@ async function createDatabase(){
   }
 }
 
-function showSetupResult(bucketId){
+function showSetupResult(uri){
   const box = document.getElementById("setupArea");
   box.innerHTML = `
     <div class="form-panel">
       <h3>✅ 資料庫建立成功！</h3>
-      <p class="hint">請把下面這組 ID 複製起來，貼到程式碼裡 <code>const KVDB_BUCKET = ""</code> 的引號中間，存檔後重新上傳到 GitHub，就完成囉！之後大家打開連結看到的都會是同一份資料。</p>
+      <p class="hint">請把下面這組網址複製起來，貼到程式碼裡 <code>const STORAGE_URI = ""</code> 的引號中間，存檔後重新上傳到 GitHub，就完成囉！之後大家打開連結看到的都會是同一份資料。</p>
       <div class="field">
-        <input id="bucketIdOut" value="${bucketId}" readonly style="width:100%;font-size:15px;padding:8px 10px;border:2px solid var(--yellow-border);border-radius:10px;background:#FFFDF3;">
+        <input id="bucketIdOut" value="${uri}" readonly style="width:100%;font-size:14px;padding:8px 10px;border:2px solid var(--yellow-border);border-radius:10px;background:#FFFDF3;">
       </div>
       <div class="form-actions">
-        <button class="btn primary" id="copyBucketBtn">複製 ID</button>
+        <button class="btn primary" id="copyBucketBtn">複製網址</button>
       </div>
     </div>
   `;
   document.getElementById("copyBucketBtn").onclick = ()=>{
     const input = document.getElementById("bucketIdOut");
     input.select();
-    navigator.clipboard && navigator.clipboard.writeText(bucketId);
+    navigator.clipboard && navigator.clipboard.writeText(uri);
     document.getElementById("copyBucketBtn").textContent = "已複製！";
   };
 }
