@@ -440,7 +440,10 @@ async function createDatabase(){
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ entries: [], className: "三年甲班" })
     });
-    if(!createRes.ok) throw new Error("create failed");
+    if(!createRes.ok){
+      const bodyText = await createRes.text().catch(()=> "");
+      throw new Error(`HTTP ${createRes.status} ${bodyText}`.trim());
+    }
     const data = await createRes.json();
     showSetupResult(data.uri);
   }catch(err){
