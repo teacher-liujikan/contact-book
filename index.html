@@ -353,10 +353,8 @@
 
 <script>
 const EDITOR_PIN = "19941122";
-// 老師：第一次使用時，打開頁面後點「建立我的聯絡本資料庫」按鈕，
-// 系統會給你一組網址，把它貼在下面這一行的引號中間，存檔後重新上傳，
-// 之後所有人打開這個網址看到的都會是同一份資料。
-const STORAGE_URI = "";
+// 老師：這裡已經幫你填好資料庫的位置了，不需要再更動。
+const KVDB_BUCKET = "P9SR6pKh6EknVysHWtcRRG";
 
 const MIN_ROWS = 9;
 let isEditor = false;
@@ -395,11 +393,11 @@ function rocParts(dateStr){
 }
 
 async function loadAll(){
-  if(!STORAGE_URI){ renderSetupScreen(); return; }
   try{
-    const res = await fetch(STORAGE_URI);
+    const res = await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`);
     if(res.ok){
-      const parsed = await res.json();
+      const text = await res.text();
+      const parsed = text ? JSON.parse(text) : {};
       const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
       entries = raw.map(normalizeEntry).filter(Boolean);
       if(parsed.className) className = parsed.className;
@@ -413,7 +411,7 @@ async function loadAll(){
 
 async function persist(){
   try{
-    await fetch(STORAGE_URI, {
+    await fetch(`https://kvdb.io/${KVDB_BUCKET}/data`, {
       method: "PUT",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ entries, className })
@@ -429,70 +427,6 @@ async function saveClassName(name){
   className = name;
   await persist();
   render();
-}
-
-async function createDatabase(){
-  const btn = document.getElementById("createDbBtn");
-  if(btn){ btn.disabled = true; btn.textContent = "建立中…"; }
-  try{
-    const createRes = await fetch("https://api.jsonstorage.net/v1/json", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ entries: [], className: "三年甲班" })
-    });
-    if(!createRes.ok){
-      const bodyText = await createRes.text().catch(()=> "");
-      throw new Error(`HTTP ${createRes.status} ${bodyText}`.trim());
-    }
-    const data = await createRes.json();
-    showSetupResult(data.uri);
-  }catch(err){
-    const box = document.getElementById("setupArea");
-    if(box){
-      box.innerHTML += `<p style="color:var(--red-deep);font-size:13px;">建立失敗：${escapeHtml(err.message || String(err))}<br>請檢查網路連線，或先關閉瀏覽器的廣告攔截／隱私保護擴充套件後再試一次。</p>`;
-    }
-    if(btn){ btn.disabled=false; btn.textContent = "➕ 建立我的聯絡本資料庫"; }
-  }
-}
-
-function showSetupResult(uri){
-  const box = document.getElementById("setupArea");
-  box.innerHTML = `
-    <div class="form-panel">
-      <h3>✅ 資料庫建立成功！</h3>
-      <p class="hint">請把下面這組網址複製起來，貼到程式碼裡 <code>const STORAGE_URI = ""</code> 的引號中間，存檔後重新上傳到 GitHub，就完成囉！之後大家打開連結看到的都會是同一份資料。</p>
-      <div class="field">
-        <input id="bucketIdOut" value="${uri}" readonly style="width:100%;font-size:14px;padding:8px 10px;border:2px solid var(--yellow-border);border-radius:10px;background:#FFFDF3;">
-      </div>
-      <div class="form-actions">
-        <button class="btn primary" id="copyBucketBtn">複製網址</button>
-      </div>
-    </div>
-  `;
-  document.getElementById("copyBucketBtn").onclick = ()=>{
-    const input = document.getElementById("bucketIdOut");
-    input.select();
-    navigator.clipboard && navigator.clipboard.writeText(uri);
-    document.getElementById("copyBucketBtn").textContent = "已複製！";
-  };
-}
-
-function renderSetupScreen(){
-  document.getElementById("toolbar").innerHTML = "";
-  document.getElementById("addArea").innerHTML = "";
-  document.getElementById("formArea").innerHTML = "";
-  document.getElementById("list").innerHTML = `
-    <div id="setupArea">
-      <div class="form-panel">
-        <h3>🌱 第一次使用，先建立資料庫</h3>
-        <p class="hint">只有第一次上架需要做這個步驟。點一下按鈕，系統會建立一個免登入、免費的雲端儲存空間，之後老師編輯的內容都會存在這裡，所有人打開連結都能看到同步的最新內容。</p>
-        <div class="form-actions" style="justify-content:flex-start;">
-          <button class="btn primary" id="createDbBtn">➕ 建立我的聯絡本資料庫</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.getElementById("createDbBtn").onclick = createDatabase;
 }
 
 function renderToolbar(){
