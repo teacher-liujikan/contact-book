@@ -446,7 +446,7 @@ async function createDatabase(){
   }catch(err){
     const box = document.getElementById("setupArea");
     if(box){
-      box.innerHTML += `<p style="color:var(--red-deep);font-size:13px;">建立失敗，請檢查網路連線後再按一次試試看。</p>`;
+      box.innerHTML += `<p style="color:var(--red-deep);font-size:13px;">建立失敗：${escapeHtml(err.message || String(err))}<br>請檢查網路連線，或先關閉瀏覽器的廣告攔截／隱私保護擴充套件後再試一次。</p>`;
     }
     if(btn){ btn.disabled=false; btn.textContent = "➕ 建立我的聯絡本資料庫"; }
   }
