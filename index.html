@@ -351,10 +351,25 @@
   <div class="footer-note">所有打開此頁面的人都能即時看到最新內容，僅老師可以編輯唷 🌟</div>
 </div>
 
-<script>
-const EDITOR_PIN = "19941122";
-// 老師：這裡已經幫你填好資料庫的位置了，不需要再更動。
-const FIREBASE_DB_URL = "https://contact-book-9f352-default-rtdb.firebaseio.com";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+
+// 老師：這裡已經幫你填好 Firebase 設定，不需要再更動。
+const firebaseConfig = {
+  apiKey: "AIzaSyDm8e--QLZavPx3yniiXBZ99uVWEoN7yMQ",
+  authDomain: "contact-book-9f352.firebaseapp.com",
+  databaseURL: "https://contact-book-9f352-default-rtdb.firebaseio.com",
+  projectId: "contact-book-9f352",
+  storageBucket: "contact-book-9f352.firebasestorage.app",
+  messagingSenderId: "413309446523",
+  appId: "1:413309446523:web:6b67bd3688eeaf79cb75de"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getDatabase(fbApp);
+const dataRef = ref(db, "contactbook");
 
 const MIN_ROWS = 9;
 let isEditor = false;
@@ -394,14 +409,12 @@ function rocParts(dateStr){
 
 async function loadAll(){
   try{
-    const res = await fetch(`${FIREBASE_DB_URL}/contactbook.json?t=${Date.now()}`, { cache: "no-store" });
-    if(res.ok){
-      const parsed = await res.json();
-      if(parsed){
-        const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
-        entries = raw.map(normalizeEntry).filter(Boolean);
-        if(parsed.className) className = parsed.className;
-      }
+    const snap = await get(dataRef);
+    if(snap.exists()){
+      const parsed = snap.val();
+      const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
+      entries = raw.map(normalizeEntry).filter(Boolean);
+      if(parsed.className) className = parsed.className;
     }
   }catch(err){
     entries = [];
@@ -412,16 +425,9 @@ async function loadAll(){
 
 async function persist(){
   try{
-    const res = await fetch(`${FIREBASE_DB_URL}/contactbook.json`, {
-      method: "PUT",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ entries, className })
-    });
-    if(!res.ok){
-      alert("儲存失敗（伺服器回應錯誤），請重新整理頁面後再試一次");
-    }
+    await set(dataRef, { entries, className });
   }catch(err){
-    alert("儲存失敗，請檢查網路連線後再試一次");
+    alert("儲存失敗，請確認你已經登入，或檢查網路連線後再試一次");
   }
 }
 
@@ -433,40 +439,54 @@ async function saveClassName(name){
   render();
 }
 
+onAuthStateChanged(auth, (user)=>{
+  isEditor = !!user;
+  if(!isEditor){ formOpen = false; editingId = null; }
+  render();
+});
+
 function renderToolbar(){
   const bar = document.getElementById("toolbar");
   if(isEditor){
     bar.innerHTML = `
       <span class="role-badge editor">🔓 老師編輯模式</span>
-      <button class="btn ghost" id="logoutBtn">結束編輯</button>
+      <button class="btn ghost" id="logoutBtn">登出</button>
     `;
-    document.getElementById("logoutBtn").onclick = ()=>{ isEditor=false; formOpen=false; editingId=null; render(); };
+    document.getElementById("logoutBtn").onclick = ()=> signOut(auth);
   }else{
     bar.innerHTML = `
       <span class="role-badge">👀 檢視模式</span>
       <div class="pin-box">
-        <input type="password" id="pinInput" placeholder="老師密碼" maxlength="8">
-        <button class="btn" id="pinBtn">登入</button>
+        <input type="email" id="emailInput" placeholder="老師信箱" style="width:150px;">
+        <input type="password" id="pwInput" placeholder="密碼" style="width:90px;">
+        <button class="btn" id="loginBtn">登入</button>
       </div>
     `;
-    document.getElementById("pinBtn").onclick = tryLogin;
-    document.getElementById("pinInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") tryLogin(); });
+    document.getElementById("loginBtn").onclick = tryLogin;
+    document.getElementById("pwInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") tryLogin(); });
   }
 }
 
 function tryLogin(){
-  const val = document.getElementById("pinInput").value;
-  if(val === EDITOR_PIN){ isEditor = true; render(); }
-  else{
-    const bar = document.getElementById("toolbar");
-    if(!bar.querySelector(".pin-msg")){
-      const msg = document.createElement("div");
-      msg.className = "pin-msg";
-      msg.textContent = "密碼不對唷，再試一次";
-      bar.appendChild(msg);
-    }
-  }
+  const email = document.getElementById("emailInput").value.trim();
+  const pw = document.getElementById("pwInput").value;
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true;
+  btn.textContent = "登入中…";
+  signInWithEmailAndPassword(auth, email, pw)
+    .catch(()=>{
+      const bar = document.getElementById("toolbar");
+      if(!bar.querySelector(".pin-msg")){
+        const msg = document.createElement("div");
+        msg.className = "pin-msg";
+        msg.textContent = "登入失敗，請確認信箱密碼是否正確";
+        bar.appendChild(msg);
+      }
+      btn.disabled = false;
+      btn.textContent = "登入";
+    });
 }
+
 
 function renderClassName(){
   const box = document.getElementById("headerTitle");
