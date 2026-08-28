@@ -636,7 +636,7 @@ function renderList(){
     </div>
   `;
 
-  const cols = Array.isArray(e.columns) && e.columns.length ? e.columns : [[]];
+  const cols = (Array.isArray(e.columns) && e.columns.length ? e.columns : [[]]).map(wrapColumnLines);
   const maxRows = Math.max(MIN_ROWS, ...cols.map(c=>c.length));
   const colsHtml = cols.map((col, ci)=>{
     let cells = "";
@@ -684,6 +684,22 @@ function renderList(){
   list.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=> deleteEntry(btn.dataset.del);
   });
+}
+
+function wrapColumnLines(col){
+  const WRAP_LEN = 7;
+  const out = [];
+  (col || []).forEach(line=>{
+    if(typeof line !== "string"){ return; }
+    if(line.length <= WRAP_LEN){
+      out.push(line);
+    }else{
+      for(let i=0;i<line.length;i+=WRAP_LEN){
+        out.push(line.slice(i, i+WRAP_LEN));
+      }
+    }
+  });
+  return out;
 }
 
 function escapeHtml(str){
