@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>三年級電子聯絡本</title>
+<script src="https://unpkg.com/pinyin-pro@3.28.1/dist/index.js"></script>
 <style>
   :root{
     --font-kai:'DFKai-SB','BiauKai','Kaiti TC','STKaiti','KaiTi',cursive,'Noto Sans TC',sans-serif;
@@ -191,6 +192,47 @@
     cursor:pointer;
   }
 
+  .zhuyin-btn{
+    margin-top:4px;
+    border-radius:10px;
+    border:2px dashed var(--sky-deep);
+    background:rgba(143,216,232,0.18);
+    color:#0d4a57;
+    font-weight:700;
+    padding:8px 14px;
+    cursor:pointer;
+    font-family:var(--font-kai);
+    font-size:14px;
+  }
+  .zhuyin-review{
+    margin-top:12px;
+    padding:12px;
+    border:2px solid var(--sky-deep);
+    border-radius:12px;
+    background:rgba(143,216,232,0.10);
+  }
+  .zhuyin-review .zy-hint{font-size:12px;color:var(--ink-soft);margin:0 0 10px;}
+  .zy-grid{display:flex;flex-wrap:wrap;gap:10px;max-height:260px;overflow-y:auto;}
+  .zy-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    background:var(--white);
+    border:2px solid var(--yellow-border);
+    border-radius:10px;
+    padding:6px 8px;
+  }
+  .zy-item .zy-char{font-size:20px;}
+  .zy-item input{
+    width:56px;
+    text-align:center;
+    font-size:14px;
+    border:1px solid var(--yellow-border);
+    border-radius:6px;
+    padding:3px 2px;
+  }
+
   .day-nav{
     display:flex;
     align-items:center;
@@ -269,8 +311,8 @@
   .grid-scroll{flex:1;overflow-x:auto;overflow-y:hidden;}
   .grid-cols{display:flex;flex-direction:row-reverse;}
   .grid-col{
-    width:88px;
-    flex:0 0 88px;
+    width:112px;
+    flex:0 0 112px;
     border-right:1px solid var(--cell-line);
   }
   .grid-col .num{
@@ -287,9 +329,21 @@
     display:flex;
     align-items:center;
     justify-content:center;
+    gap:3px;
     border-bottom:1px solid var(--cell-line);
-    font-size:38px;
     background:var(--paper);
+  }
+  .cell-char{
+    font-size:38px;
+    line-height:1;
+  }
+  .cell-zhuyin{
+    writing-mode:vertical-rl;
+    text-orientation:upright;
+    font-size:14px;
+    line-height:1.05;
+    letter-spacing:1px;
+    color:var(--ink-soft);
   }
   .date-side{
     width:150px;
@@ -371,10 +425,99 @@ const auth = getAuth(fbApp);
 const db = getDatabase(fbApp);
 const dataRef = ref(db, "contactbook");
 
+// ---- 國字轉注音（用 pinyin-pro 取得拼音，再對照轉成注音符號） ----
+const ZY_INITIALS_2 = ['zh','ch','sh'];
+const ZY_INITIALS_1 = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','r','z','c','s'];
+const ZY_INITIAL_MAP = {
+  'b':'ㄅ','p':'ㄆ','m':'ㄇ','f':'ㄈ','d':'ㄉ','t':'ㄊ','n':'ㄋ','l':'ㄌ',
+  'g':'ㄍ','k':'ㄎ','h':'ㄏ','j':'ㄐ','q':'ㄑ','x':'ㄒ',
+  'zh':'ㄓ','ch':'ㄔ','sh':'ㄕ','r':'ㄖ','z':'ㄗ','c':'ㄘ','s':'ㄙ'
+};
+const ZY_FINAL_MAP = {
+  'i':'ㄧ','u':'ㄨ','ü':'ㄩ',
+  'a':'ㄚ','o':'ㄛ','e':'ㄜ','ê':'ㄝ',
+  'ai':'ㄞ','ei':'ㄟ','ao':'ㄠ','ou':'ㄡ',
+  'an':'ㄢ','en':'ㄣ','ang':'ㄤ','eng':'ㄥ','er':'ㄦ',
+  'ia':'ㄧㄚ','ie':'ㄧㄝ','iao':'ㄧㄠ','iu':'ㄧㄡ','iou':'ㄧㄡ',
+  'ian':'ㄧㄢ','in':'ㄧㄣ','iang':'ㄧㄤ','ing':'ㄧㄥ','iong':'ㄩㄥ',
+  'ua':'ㄨㄚ','uo':'ㄨㄛ','uai':'ㄨㄞ','ui':'ㄨㄟ','uei':'ㄨㄟ',
+  'uan':'ㄨㄢ','un':'ㄨㄣ','uen':'ㄨㄣ','uang':'ㄨㄤ','ueng':'ㄨㄥ','ong':'ㄨㄥ',
+  'üe':'ㄩㄝ','üan':'ㄩㄢ','ün':'ㄩㄣ'
+};
+const ZY_ZERO_INITIAL_MAP = {
+  'yi':'i','ya':'ia','ye':'ie','yao':'iao','you':'iu','iou':'iou',
+  'yan':'ian','yin':'in','yang':'iang','ying':'ing','yong':'iong',
+  'yu':'ü','yue':'üe','yuan':'üan','yun':'ün',
+  'wu':'u','wa':'ua','wo':'uo','wai':'uai','wei':'uei',
+  'wan':'uan','wen':'uen','wang':'uang','weng':'ueng'
+};
+const ZY_RETROFLEX = ['zh','ch','sh','r','z','c','s'];
+const ZY_TONE_MARK = {'1':'', '2':'ˊ', '3':'ˇ', '4':'ˋ'};
+
+function zySyllableToZhuyin(syl){
+  const m = syl.match(/^([a-züê]+)([0-5])$/i);
+  if(!m) return null;
+  let base = m[1].toLowerCase();
+  const tone = m[2];
+
+  let initial = '';
+  for(const two of ZY_INITIALS_2){
+    if(base.startsWith(two)){ initial = two; base = base.slice(2); break; }
+  }
+  if(!initial){
+    for(const one of ZY_INITIALS_1){
+      if(base.startsWith(one)){ initial = one; base = base.slice(1); break; }
+    }
+  }
+
+  let final = base;
+  if(!initial && ZY_ZERO_INITIAL_MAP[final] !== undefined){
+    final = ZY_ZERO_INITIAL_MAP[final];
+  }
+  if((initial==='j'||initial==='q'||initial==='x') && final.startsWith('u') && !final.startsWith('ü')){
+    final = 'ü' + final.slice(1);
+  }
+
+  let finalSym;
+  if(ZY_RETROFLEX.includes(initial) && final === 'i'){
+    finalSym = '';
+  }else{
+    finalSym = ZY_FINAL_MAP[final];
+    if(finalSym === undefined){ return null; }
+  }
+
+  const initSym = initial ? ZY_INITIAL_MAP[initial] : '';
+  let result = initSym + finalSym;
+  if(tone === '0'){
+    result = '˙' + result;
+  }else{
+    result += (ZY_TONE_MARK[tone] || '');
+  }
+  return result;
+}
+
+function isCJKChar(ch){
+  return /[\u4e00-\u9fff\u3400-\u4dbf]/.test(ch);
+}
+
+function charToZhuyinGuess(ch){
+  try{
+    if(!window.pinyinPro || !window.pinyinPro.pinyin) return '';
+    const py = window.pinyinPro.pinyin(ch, {toneType:'num', type:'array'});
+    if(!py || !py[0]) return '';
+    return zySyllableToZhuyin(py[0]) || '';
+  }catch(err){
+    return '';
+  }
+}
+
+
 const MIN_ROWS = 7;
 let isEditor = false;
 let entries = [];
 let className = "三年甲班";
+let zhuyinDict = {};
+let draftZhuyin = {};
 let editingId = null;
 let formOpen = false;
 let draftColumns = [];
@@ -415,6 +558,7 @@ async function loadAll(){
       const raw = Array.isArray(parsed.entries) ? parsed.entries : [];
       entries = raw.map(normalizeEntry).filter(Boolean);
       if(parsed.className) className = parsed.className;
+      if(parsed.zhuyinDict && typeof parsed.zhuyinDict === "object") zhuyinDict = parsed.zhuyinDict;
     }
   }catch(err){
     entries = [];
@@ -425,7 +569,7 @@ async function loadAll(){
 
 async function persist(){
   try{
-    await set(dataRef, { entries, className });
+    await set(dataRef, { entries, className, zhuyinDict });
   }catch(err){
     alert("儲存失敗，請確認你已經登入，或檢查網路連線後再試一次");
   }
@@ -511,6 +655,7 @@ function openForm(entry){
   draftDate = entry ? entry.date : new Date().toISOString().slice(0,10);
   draftColumns = entry && Array.isArray(entry.columns) && entry.columns.length ? entry.columns.map(c=>[...c]) : [[],[],[]];
   draftNote = entry ? (entry.note || "") : "";
+  draftZhuyin = {};
   renderForm();
   renderAddArea();
 }
@@ -528,6 +673,8 @@ function renderForm(){
         <label>逐格內容（每一欄是抄寫本上的一直行，每一行文字會變成一格）</label>
         <p class="hint">學生會照著這些欄位、一格一格抄到自己的聯絡簿上，欄位順序就是抄寫順序。</p>
         <div class="cols-editor" id="colsEditor"></div>
+        <button type="button" class="zhuyin-btn" id="autoZhuyinBtn">🔤 自動轉注音（產生後可修正）</button>
+        <div id="zhuyinReview"></div>
       </div>
       <div class="field">
         <label>老師補充說明（選填，不算在抄寫格內）</label>
@@ -544,6 +691,7 @@ function renderForm(){
   document.getElementById("fNote").addEventListener("input", e=> draftNote = e.target.value);
   document.getElementById("cancelFormBtn").onclick = closeForm;
   document.getElementById("saveFormBtn").onclick = submitForm;
+  document.getElementById("autoZhuyinBtn").onclick = runAutoZhuyin;
 }
 
 function renderColsEditor(){
@@ -576,6 +724,56 @@ function renderColsEditor(){
   };
 }
 
+function runAutoZhuyin(){
+  const chars = new Set();
+  draftColumns.forEach(col=>{
+    (col||[]).forEach(line=>{
+      if(typeof line !== "string") return;
+      tokenizeLine(line).forEach(tok=>{
+        if(tok.length===1 && isCJKChar(tok)) chars.add(tok);
+      });
+    });
+  });
+  if(chars.size===0){
+    document.getElementById("zhuyinReview").innerHTML = `<p class="hint" style="margin-top:10px;">目前欄位裡沒有偵測到中文字，不需要標注音唷。</p>`;
+    return;
+  }
+  chars.forEach(ch=>{
+    if(draftZhuyin[ch] === undefined){
+      draftZhuyin[ch] = (zhuyinDict && zhuyinDict[ch]) ? zhuyinDict[ch] : charToZhuyinGuess(ch);
+    }
+  });
+  renderZhuyinReview(Array.from(chars));
+}
+
+function renderZhuyinReview(chars){
+  const box = document.getElementById("zhuyinReview");
+  box.innerHTML = `
+    <div class="zhuyin-review">
+      <p class="zy-hint">已自動產生注音，多音字可能會猜錯，請檢查一下每個字的讀音，錯的話直接改掉再按「套用」：</p>
+      <div class="zy-grid">
+        ${chars.map(ch=>`
+          <div class="zy-item">
+            <span class="zy-char">${escapeHtml(ch)}</span>
+            <input data-zy-char="${escapeHtml(ch)}" value="${escapeHtml(draftZhuyin[ch]||'')}">
+          </div>
+        `).join("")}
+      </div>
+      <div class="form-actions" style="margin-top:10px;">
+        <button type="button" class="btn primary small" id="applyZhuyinBtn">✅ 套用這些注音</button>
+      </div>
+    </div>
+  `;
+  box.querySelectorAll("[data-zy-char]").forEach(input=>{
+    input.addEventListener("input", e=>{
+      draftZhuyin[e.target.dataset.zyChar] = e.target.value.trim();
+    });
+  });
+  document.getElementById("applyZhuyinBtn").onclick = ()=>{
+    box.innerHTML = `<p class="hint" style="margin-top:10px;color:var(--green-deep);">✅ 注音已套用，記得存檔才會真的儲存。</p>`;
+  };
+}
+
 function closeForm(){
   formOpen = false; editingId = null;
   document.getElementById("formArea").innerHTML = "";
@@ -586,6 +784,8 @@ async function submitForm(){
   if(!draftDate){ alert("請選擇日期唷"); return; }
   const cleanCols = draftColumns.map(c=>c.filter(x=>x.trim().length>0)).filter(c=>c.length>0);
   if(cleanCols.length===0){ alert("請至少填寫一欄內容"); return; }
+
+  zhuyinDict = { ...zhuyinDict, ...draftZhuyin };
 
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
@@ -641,7 +841,13 @@ function renderList(){
   const colsHtml = physicalCols.map(pc=>{
     let cells = "";
     for(let r=0;r<MIN_ROWS;r++){
-      cells += `<div class="grid-cell">${pc.cells[r] ? escapeHtml(pc.cells[r]) : ""}</div>`;
+      const cell = pc.cells[r];
+      if(cell && cell.text){
+        const zyHtml = cell.zhuyin ? `<span class="cell-zhuyin">${escapeHtml(cell.zhuyin)}</span>` : "";
+        cells += `<div class="grid-cell"><span class="cell-char">${escapeHtml(cell.text)}</span>${zyHtml}</div>`;
+      }else{
+        cells += `<div class="grid-cell"></div>`;
+      }
     }
     const numHtml = pc.number ? pc.number : "";
     return `<div class="grid-col"><div class="num">${numHtml}</div>${cells}</div>`;
@@ -703,7 +909,13 @@ function expandCells(col){
   const out = [];
   (col || []).forEach(line=>{
     if(typeof line !== "string" || line.length===0){ return; }
-    tokenizeLine(line).forEach(tok => out.push(tok));
+    tokenizeLine(line).forEach(tok=>{
+      let zy = "";
+      if(tok.length===1 && isCJKChar(tok)){
+        zy = (zhuyinDict && zhuyinDict[tok]) ? zhuyinDict[tok] : charToZhuyinGuess(tok);
+      }
+      out.push({ text: tok, zhuyin: zy });
+    });
   });
   return out;
 }
