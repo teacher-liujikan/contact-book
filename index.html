@@ -371,7 +371,7 @@ const auth = getAuth(fbApp);
 const db = getDatabase(fbApp);
 const dataRef = ref(db, "contactbook");
 
-const MIN_ROWS = 9;
+const MIN_ROWS = 7;
 let isEditor = false;
 let entries = [];
 let className = "三年甲班";
@@ -636,14 +636,15 @@ function renderList(){
     </div>
   `;
 
-  const cols = (Array.isArray(e.columns) && e.columns.length ? e.columns : [[]]).map(wrapColumnLines);
-  const maxRows = Math.max(MIN_ROWS, ...cols.map(c=>c.length));
-  const colsHtml = cols.map((col, ci)=>{
+  const rawCols = Array.isArray(e.columns) && e.columns.length ? e.columns : [[]];
+  const physicalCols = buildPhysicalColumns(rawCols, MIN_ROWS);
+  const colsHtml = physicalCols.map(pc=>{
     let cells = "";
-    for(let r=0;r<maxRows;r++){
-      cells += `<div class="grid-cell">${col[r] ? escapeHtml(col[r]) : ""}</div>`;
+    for(let r=0;r<MIN_ROWS;r++){
+      cells += `<div class="grid-cell">${pc.cells[r] ? escapeHtml(pc.cells[r]) : ""}</div>`;
     }
-    return `<div class="grid-col"><div class="num">${ci+1}</div>${cells}</div>`;
+    const numHtml = pc.number ? pc.number : "";
+    return `<div class="grid-col"><div class="num">${numHtml}</div>${cells}</div>`;
   }).join("");
 
   const cardHtml = `
@@ -658,7 +659,7 @@ function renderList(){
       </div>
       <div class="entry-body">
         <div class="grid-scroll">
-          <div class="grid-cols" style="height:${52 + maxRows*76}px;">${colsHtml}</div>
+          <div class="grid-cols" style="height:${52 + MIN_ROWS*76}px;">${colsHtml}</div>
         </div>
         <div class="date-side">
           <div class="drow"><div class="dval">${p.roc}</div><div class="dlab">年</div></div>
@@ -686,20 +687,42 @@ function renderList(){
   });
 }
 
-function wrapColumnLines(col){
-  const WRAP_LEN = 7;
+function tokenizeLine(line){
+  // 英文字母＋數字（像 P10、20）視為一個整體，留在同一格；
+  // 其他字元（中文、標點等）逐字各自一格
+  const tokens = [];
+  const re = /[A-Za-z0-9]+|./gs;
+  let m;
+  while((m = re.exec(line)) !== null){
+    tokens.push(m[0]);
+  }
+  return tokens;
+}
+
+function expandCells(col){
   const out = [];
   (col || []).forEach(line=>{
-    if(typeof line !== "string"){ return; }
-    if(line.length <= WRAP_LEN){
-      out.push(line);
-    }else{
-      for(let i=0;i<line.length;i+=WRAP_LEN){
-        out.push(line.slice(i, i+WRAP_LEN));
-      }
-    }
+    if(typeof line !== "string" || line.length===0){ return; }
+    tokenizeLine(line).forEach(tok => out.push(tok));
   });
   return out;
+}
+
+function buildPhysicalColumns(columns, capacity){
+  const physical = [];
+  columns.forEach((col, idx)=>{
+    const cells = expandCells(col);
+    if(cells.length === 0){
+      physical.push({ number: idx+1, cells: [] });
+      return;
+    }
+    let first = true;
+    for(let i=0; i<cells.length; i+=capacity){
+      physical.push({ number: first ? (idx+1) : null, cells: cells.slice(i, i+capacity) });
+      first = false;
+    }
+  });
+  return physical;
 }
 
 function escapeHtml(str){
