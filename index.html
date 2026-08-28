@@ -338,14 +338,16 @@
     line-height:1;
   }
   .cell-zhuyin{
-    position:relative;
     writing-mode:vertical-rl;
     text-orientation:upright;
     font-size:14px;
     line-height:1.05;
     letter-spacing:1px;
     color:var(--ink-soft);
-    padding-top:2px;
+  }
+  .zy-last-wrap{
+    position:relative;
+    display:inline-block;
   }
   .zy-tone{
     position:absolute;
@@ -355,7 +357,7 @@
     color:var(--ink-soft);
   }
   .zy-tone.right{ top:-3px; right:-8px; }
-  .zy-tone.neutral{ top:-3px; left:-8px; }
+  .zy-tone.neutral{ position:static; writing-mode:horizontal-tb; display:block; margin:0 0 1px -1px; }
   .date-side{
     width:150px;
     flex:0 0 150px;
@@ -957,7 +959,10 @@ function renderZhuyinHtml(zy){
   const last = zy.slice(-1);
   if(last==="ˊ" || last==="ˇ" || last==="ˋ"){
     const base = zy.slice(0, -1);
-    return `${escapeHtml(base)}<span class="zy-tone right">${last}</span>`;
+    const chars = Array.from(base);
+    const lastChar = chars.pop();
+    const headHtml = chars.map(c=>escapeHtml(c)).join("");
+    return `${headHtml}<span class="zy-last-wrap">${escapeHtml(lastChar)}<span class="zy-tone right">${last}</span></span>`;
   }
   return escapeHtml(zy);
 }
