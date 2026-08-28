@@ -338,13 +338,24 @@
     line-height:1;
   }
   .cell-zhuyin{
+    position:relative;
     writing-mode:vertical-rl;
     text-orientation:upright;
     font-size:14px;
     line-height:1.05;
     letter-spacing:1px;
     color:var(--ink-soft);
+    padding-top:2px;
   }
+  .zy-tone{
+    position:absolute;
+    font-size:11px;
+    line-height:1;
+    writing-mode:horizontal-tb;
+    color:var(--ink-soft);
+  }
+  .zy-tone.right{ top:-3px; right:-8px; }
+  .zy-tone.neutral{ top:-3px; left:-8px; }
   .date-side{
     width:150px;
     flex:0 0 150px;
@@ -843,7 +854,7 @@ function renderList(){
     for(let r=0;r<MIN_ROWS;r++){
       const cell = pc.cells[r];
       if(cell && cell.text){
-        const zyHtml = cell.zhuyin ? `<span class="cell-zhuyin">${escapeHtml(cell.zhuyin)}</span>` : "";
+        const zyHtml = cell.zhuyin ? `<span class="cell-zhuyin">${renderZhuyinHtml(cell.zhuyin)}</span>` : "";
         cells += `<div class="grid-cell"><span class="cell-char">${escapeHtml(cell.text)}</span>${zyHtml}</div>`;
       }else{
         cells += `<div class="grid-cell"></div>`;
@@ -935,6 +946,20 @@ function buildPhysicalColumns(columns, capacity){
     }
   });
   return physical;
+}
+
+function renderZhuyinHtml(zy){
+  if(!zy) return "";
+  if(zy.startsWith("˙")){
+    const base = zy.slice(1);
+    return `<span class="zy-tone neutral">˙</span>${escapeHtml(base)}`;
+  }
+  const last = zy.slice(-1);
+  if(last==="ˊ" || last==="ˇ" || last==="ˋ"){
+    const base = zy.slice(0, -1);
+    return `${escapeHtml(base)}<span class="zy-tone right">${last}</span>`;
+  }
+  return escapeHtml(zy);
 }
 
 function escapeHtml(str){
