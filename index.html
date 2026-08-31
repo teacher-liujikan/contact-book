@@ -308,7 +308,36 @@
   }
 
   .entry-body{display:flex;}
-  .grid-scroll{flex:1;overflow-x:auto;overflow-y:hidden;}
+  .message-board{
+    flex:1;
+    min-width:0;
+    padding:20px 26px;
+    display:flex;
+    flex-direction:column;
+  }
+  .message-board h3{
+    font-family:var(--font-kai);
+    font-size:20px;
+    color:var(--ink-soft);
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .message-board .msg-text{
+    font-family:var(--font-kai);
+    font-size:32px;
+    line-height:1.7;
+    color:var(--ink);
+    white-space:pre-wrap;
+  }
+  .message-board.empty{
+    align-items:center;
+    justify-content:center;
+    color:var(--ink-soft);
+    font-size:16px;
+  }
+  .grid-scroll{flex:0 0 auto;overflow-x:auto;overflow-y:hidden;}
   .grid-cols{display:flex;flex-direction:row-reverse;}
   .grid-col{
     width:112px;
@@ -536,6 +565,7 @@ let formOpen = false;
 let draftColumns = [];
 let draftDate = "";
 let draftNote = "";
+let draftMessage = "";
 let currentIndex = 0;
 let dataReady = false;
 
@@ -554,7 +584,8 @@ function normalizeEntry(e){
     id: e.id || (Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
     date: e.date,
     columns: columns.length ? columns : [[]],
-    note: typeof e.note === "string" ? e.note : ""
+    note: typeof e.note === "string" ? e.note : "",
+    message: typeof e.message === "string" ? e.message : ""
   };
 }
 
@@ -668,6 +699,7 @@ function openForm(entry){
   draftDate = entry ? entry.date : new Date().toISOString().slice(0,10);
   draftColumns = entry && Array.isArray(entry.columns) && entry.columns.length ? entry.columns.map(c=>[...c]) : [[],[],[]];
   draftNote = entry ? (entry.note || "") : "";
+  draftMessage = entry ? (entry.message || "") : "";
   draftZhuyin = {};
   renderForm();
   renderAddArea();
@@ -690,6 +722,11 @@ function renderForm(){
         <div id="zhuyinReview"></div>
       </div>
       <div class="field">
+        <label>老師留言板（大字顯示在畫面左側，學生不用抄）</label>
+        <p class="hint">用來提醒等一下要做的事，例如集合地點、要帶的東西提醒、活動流程。</p>
+        <textarea id="fMessage" style="min-height:70px;" placeholder="例如：等一下體育課直接在教室穿好運動服，帶水壺到操場集合">${escapeHtml(draftMessage)}</textarea>
+      </div>
+      <div class="field">
         <label>老師補充說明（選填，不算在抄寫格內）</label>
         <textarea id="fNote" style="min-height:44px;" placeholder="給家長的提醒">${escapeHtml(draftNote)}</textarea>
       </div>
@@ -701,6 +738,7 @@ function renderForm(){
   `;
   renderColsEditor();
   document.getElementById("fDate").addEventListener("change", e=> draftDate = e.target.value);
+  document.getElementById("fMessage").addEventListener("input", e=> draftMessage = e.target.value);
   document.getElementById("fNote").addEventListener("input", e=> draftNote = e.target.value);
   document.getElementById("cancelFormBtn").onclick = closeForm;
   document.getElementById("saveFormBtn").onclick = submitForm;
@@ -802,11 +840,11 @@ async function submitForm(){
 
   if(editingId){
     const idx = entries.findIndex(e=>e.id===editingId);
-    if(idx>-1) entries[idx] = {...entries[idx], date:draftDate, columns:cleanCols, note:draftNote.trim()};
+    if(idx>-1) entries[idx] = {...entries[idx], date:draftDate, columns:cleanCols, note:draftNote.trim(), message:draftMessage.trim()};
   }else{
     entries.push({
       id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      date: draftDate, columns: cleanCols, note: draftNote.trim()
+      date: draftDate, columns: cleanCols, note: draftNote.trim(), message: draftMessage.trim()
     });
   }
   await saveEntries();
@@ -877,6 +915,14 @@ function renderList(){
           </div>` : ``}
       </div>
       <div class="entry-body">
+        ${e.message ? `
+          <div class="message-board">
+            <h3>📢 老師留言板</h3>
+            <div class="msg-text">${escapeHtml(e.message)}</div>
+          </div>
+        ` : `
+          <div class="message-board empty">（老師還沒有留言）</div>
+        `}
         <div class="grid-scroll">
           <div class="grid-cols" style="height:${52 + MIN_ROWS*76}px;">${colsHtml}</div>
         </div>
