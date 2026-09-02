@@ -428,6 +428,80 @@
   .note-box b{color:var(--red-deep);}
 
   .footer-note{text-align:center;font-size:16px;color:var(--ink-soft);margin-top:28px;}
+
+  /* ============ 手機版（窄螢幕）============ */
+  @media (max-width: 720px){
+    body{padding:14px 8px 60px;}
+
+    .header{padding:16px 14px;border-radius:18px;}
+    .header h1{font-size:24px;}
+    .header h1 input{font-size:24px;width:60vw;max-width:220px;}
+    .header .sub{font-size:12px;}
+
+    .toolbar{gap:6px;margin-bottom:12px;}
+    .role-badge{font-size:12px;padding:5px 10px;}
+    .btn{font-size:13px;padding:7px 14px;}
+    .pin-box{padding:4px 6px 4px 10px;}
+    .pin-box input{font-size:13px;width:70px;}
+    .pin-box input#emailInput{width:110px !important;}
+    .pin-box input#pwInput{width:70px !important;}
+
+    .day-nav{gap:6px;margin-bottom:10px;}
+    .nav-btn{font-size:13px;padding:8px 12px;}
+    .day-indicator{font-size:13px;}
+
+    .entry{border-radius:18px;border-width:3px;}
+    .entry-header{padding:10px 12px;min-height:auto;}
+    .entry-header h2{font-size:16px;}
+    .entry-actions{gap:6px;}
+    .icon-btn{width:32px;height:32px;font-size:14px;}
+
+    .entry-body{flex-direction:column;}
+    .message-board{order:-1;flex:none;width:100%;padding:14px 16px;}
+    .message-board h3{font-size:14px;margin-bottom:6px;}
+    .message-board .msg-text{font-size:17px;line-height:1.5;}
+    .message-board.empty{font-size:13px;padding:10px 16px;}
+
+    .grid-scroll{order:0;width:100%;}
+    .grid-col{width:70px;flex:0 0 70px;}
+    .grid-col .num{font-size:16px;padding:6px 0;}
+    .grid-cell{height:56px;gap:2px;}
+    .cell-char{font-size:24px;}
+    .cell-zhuyin{font-size:10px;}
+    .zy-tone{font-size:8px;}
+    .zy-tone.right{top:-2px;right:-6px;}
+
+    .date-side{
+      order:-2;
+      width:100%;
+      flex:none;
+      flex-direction:row;
+      border-left:none;
+      border-top:3px solid var(--ink);
+      border-bottom:3px solid var(--ink);
+    }
+    .date-side .drow{
+      border-bottom:none;
+      border-right:1px solid var(--cell-line);
+      padding:8px 2px;
+    }
+    .date-side .drow:last-child{border-right:none;}
+    .date-side .dval{font-size:22px;}
+    .date-side .dlab{font-size:11px;margin-top:0;}
+    .date-side .drow.weekday .dval{
+      writing-mode:horizontal-tb;
+      font-size:15px;
+      letter-spacing:0;
+      line-height:1.2;
+    }
+
+    .note-box{font-size:14px;padding:10px 14px;}
+    .footer-note{font-size:11px;margin-top:18px;}
+
+    .form-panel{padding:14px;}
+    .col-edit{min-width:120px;}
+    .cols-editor{gap:8px;}
+  }
 </style>
 </head>
 <body>
