@@ -350,6 +350,46 @@
     padding:8px 10px;
     resize:vertical;
   }
+  .weekly-gear-btn{
+    font-family:'Noto Sans TC', sans-serif;
+    font-size:12px;
+    font-weight:700;
+    border:2px solid var(--sky-deep);
+    background:rgba(143,216,232,0.18);
+    color:#0d4a57;
+    border-radius:999px;
+    padding:2px 10px;
+    cursor:pointer;
+    margin-left:auto;
+  }
+  .weekly-editor{
+    margin-top:10px;
+    padding:10px;
+    border:2px solid var(--sky-deep);
+    border-radius:10px;
+    background:rgba(143,216,232,0.10);
+  }
+  .weekly-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .weekly-label{
+    width:46px;
+    flex:0 0 46px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink-soft);
+    font-family:var(--font-kai);
+  }
+  .weekly-row input{
+    flex:1;
+    font-size:14px;
+    padding:5px 8px;
+    border:1px solid var(--yellow-border);
+    border-radius:6px;
+  }
   .message-board.empty{
     align-items:center;
     justify-content:center;
@@ -481,6 +521,9 @@
     .message-board h3{font-size:14px;margin-bottom:6px;}
     .message-board .msg-text{font-size:17px;line-height:1.5;}
     .msg-edit-input{font-size:15px;min-height:56px;}
+    .weekly-row input{font-size:13px;}
+    .weekly-label{font-size:12px;width:40px;flex:0 0 40px;}
+    .weekly-gear-btn{font-size:11px;padding:2px 8px;}
     .message-board.empty{font-size:13px;padding:10px 16px;}
 
     .grid-scroll{order:0;width:100%;}
@@ -663,7 +706,9 @@ let draftNote = "";
 let draftMessage = "";
 let currentIndex = 0;
 let dataReady = false;
-let fixedMessage = "";
+let weeklyReminders = {0:"",1:"",2:"",3:"",4:"",5:"",6:""};
+let showWeeklyEditor = false;
+let showCalendarImport = false;
 
 const weekdayZh = ["日","一","二","三","四","五","六"];
 
@@ -687,7 +732,7 @@ function normalizeEntry(e){
 
 function rocParts(dateStr){
   const d = new Date(dateStr + "T00:00:00");
-  return { roc: d.getFullYear()-1911, m: d.getMonth()+1, day: d.getDate(), wd: weekdayZh[d.getDay()] };
+  return { roc: d.getFullYear()-1911, m: d.getMonth()+1, day: d.getDate(), wd: weekdayZh[d.getDay()], dow: d.getDay() };
 }
 
 function getTodayStr(){
@@ -716,7 +761,11 @@ async function loadAll(){
       entries = raw.map(normalizeEntry).filter(Boolean);
       if(parsed.className) className = parsed.className;
       if(parsed.zhuyinDict && typeof parsed.zhuyinDict === "object") zhuyinDict = parsed.zhuyinDict;
-      if(typeof parsed.fixedMessage === "string") fixedMessage = parsed.fixedMessage;
+      if(parsed.weeklyReminders && typeof parsed.weeklyReminders === "object"){
+        for(let i=0;i<7;i++){
+          if(typeof parsed.weeklyReminders[i] === "string") weeklyReminders[i] = parsed.weeklyReminders[i];
+        }
+      }
     }
   }catch(err){
     entries = [];
@@ -729,7 +778,7 @@ async function loadAll(){
 
 async function persist(){
   try{
-    await set(dataRef, { entries, className, zhuyinDict, fixedMessage });
+    await set(dataRef, { entries, className, zhuyinDict, weeklyReminders });
   }catch(err){
     alert("儲存失敗，請確認你已經登入，或檢查網路連線後再試一次");
   }
@@ -743,9 +792,10 @@ async function saveClassName(name){
   render();
 }
 
-async function saveFixedMessage(text){
-  fixedMessage = text;
+async function saveWeeklyReminders(newMap){
+  weeklyReminders = { ...weeklyReminders, ...newMap };
   await persist();
+  render();
 }
 
 onAuthStateChanged(auth, (user)=>{
@@ -810,8 +860,90 @@ function renderClassName(){
 function renderAddArea(){
   const area = document.getElementById("addArea");
   if(!isEditor || formOpen){ area.innerHTML=""; return; }
-  area.innerHTML = `<div class="add-card" id="openFormBtn">➕ 新增今天的紀錄</div>`;
+  area.innerHTML = `
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
+      <div class="add-card" id="openFormBtn" style="flex:1;">➕ 新增今天的紀錄</div>
+      <div class="add-card" id="openCalendarBtn" style="flex:1;border-color:var(--sky-deep);color:#0d4a57;background:rgba(143,216,232,0.12);">📅 批次匯入行事曆</div>
+    </div>
+    <div id="calendarImportBox"></div>
+  `;
   document.getElementById("openFormBtn").onclick = ()=> openForm(null);
+  document.getElementById("openCalendarBtn").onclick = ()=>{ showCalendarImport = !showCalendarImport; renderCalendarImport(); };
+  if(showCalendarImport) renderCalendarImport();
+}
+
+function parseCalendarLines(text){
+  const lines = text.split("\n");
+  const result = [];
+  lines.forEach(line=>{
+    line = line.trim();
+    if(!line) return;
+    const m = line.match(/^(\d{4}-\d{2}-\d{2})[,，:：\s]+(.+)$/);
+    if(m) result.push({ date: m[1], message: m[2].trim() });
+  });
+  return result;
+}
+
+async function importCalendar(pairs){
+  pairs.forEach(({date, message})=>{
+    const idx = entries.findIndex(x=>x.date===date);
+    if(idx>-1){
+      const existing = entries[idx].message || "";
+      entries[idx] = {...entries[idx], message: existing ? existing + "；" + message : message};
+    }else{
+      entries.push({
+        id: Date.now().toString(36)+Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,4),
+        date, columns: [[]], note: "", message
+      });
+    }
+  });
+  await saveEntries();
+  currentIndex = 0;
+  render();
+}
+
+function renderCalendarImport(){
+  const box = document.getElementById("calendarImportBox");
+  if(!box) return;
+  if(!showCalendarImport){ box.innerHTML=""; return; }
+  box.innerHTML = `
+    <div class="form-panel">
+      <h3>📅 批次匯入行事曆提醒</h3>
+      <p class="hint">請貼上「日期,提醒內容」格式，一行一筆，例如：<br>2026-10-09,國慶日補假<br>2026-10-15,運動會，打掃提前結束<br>不知道怎麼整理的話，把行事曆原始內容直接貼給 Claude，請它幫你轉成這個格式再貼過來。</p>
+      <textarea id="calendarInput" style="min-height:140px;" placeholder="2026-10-09,國慶日補假"></textarea>
+      <div id="calendarPreview"></div>
+      <div class="form-actions">
+        <button type="button" class="btn ghost" id="calendarCancelBtn">取消</button>
+        <button type="button" class="btn primary" id="calendarParseBtn">解析預覽</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("calendarCancelBtn").onclick = ()=>{ showCalendarImport=false; renderAddArea(); };
+  document.getElementById("calendarParseBtn").onclick = ()=>{
+    const text = document.getElementById("calendarInput").value;
+    const pairs = parseCalendarLines(text);
+    const preview = document.getElementById("calendarPreview");
+    if(pairs.length===0){
+      preview.innerHTML = `<p class="hint" style="color:var(--red-deep);">沒有偵測到符合格式的資料，請確認每行格式是「日期,提醒內容」，日期要是 YYYY-MM-DD。</p>`;
+      return;
+    }
+    preview.innerHTML = `
+      <div class="weekly-editor" style="margin-top:10px;">
+        <p class="zy-hint" style="margin-bottom:8px;">偵測到 ${pairs.length} 筆，確認沒問題後按「確認匯入」：</p>
+        <div style="max-height:220px; overflow-y:auto;">
+          ${pairs.map(p=>`<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--yellow-border);"><b>${p.date}</b>　${escapeHtml(p.message)}</div>`).join("")}
+        </div>
+        <div class="form-actions" style="margin-top:10px;">
+          <button type="button" class="btn primary small" id="calendarConfirmBtn">✅ 確認匯入</button>
+        </div>
+      </div>
+    `;
+    document.getElementById("calendarConfirmBtn").onclick = async ()=>{
+      await importCalendar(pairs);
+      showCalendarImport = false;
+      renderAddArea();
+    };
+  };
 }
 
 function openForm(entry){
@@ -1038,11 +1170,12 @@ function renderList(){
       <div class="entry-body">
         <div class="message-board">
           <div class="msg-block">
-            <h3>📌 固定提醒</h3>
-            ${isEditor
-              ? `<textarea id="fixedMsgInput" class="msg-edit-input" placeholder="長期固定的提醒，例如：每天中午需要帶水壺">${escapeHtml(fixedMessage)}</textarea>`
-              : `<div class="msg-text">${fixedMessage ? escapeHtml(fixedMessage) : "（目前沒有固定提醒）"}</div>`
-            }
+            <h3>
+              📌 固定提醒（星期${p.wd}）
+              ${isEditor ? `<button type="button" class="weekly-gear-btn" id="weeklyGearBtn">⚙️ 設定</button>` : ``}
+            </h3>
+            <div class="msg-text">${weeklyReminders[p.dow] ? escapeHtml(weeklyReminders[p.dow]) : "（星期"+p.wd+"目前沒有固定提醒）"}</div>
+            <div id="weeklyEditorBox"></div>
           </div>
           <div class="msg-block">
             <h3>📢 今日臨時留言</h3>
@@ -1077,10 +1210,38 @@ function renderList(){
     btn.onclick = ()=> deleteEntry(btn.dataset.del);
   });
 
-  const fixedMsgInput = document.getElementById("fixedMsgInput");
-  if(fixedMsgInput){
-    fixedMsgInput.addEventListener("change", (ev)=> saveFixedMessage(ev.target.value));
+  const weeklyGearBtn = document.getElementById("weeklyGearBtn");
+  if(weeklyGearBtn){
+    weeklyGearBtn.onclick = ()=>{ showWeeklyEditor = !showWeeklyEditor; renderWeeklyEditor(); };
   }
+  if(showWeeklyEditor) renderWeeklyEditor();
+}
+
+function renderWeeklyEditor(){
+  const box = document.getElementById("weeklyEditorBox");
+  if(!box) return;
+  if(!showWeeklyEditor){ box.innerHTML = ""; return; }
+  box.innerHTML = `
+    <div class="weekly-editor">
+      ${[0,1,2,3,4,5,6].map(d=>`
+        <div class="weekly-row">
+          <span class="weekly-label">星期${weekdayZh[d]}</span>
+          <input data-dow="${d}" value="${escapeHtml(weeklyReminders[d]||'')}" placeholder="這天沒有特別提醒可留空">
+        </div>
+      `).join("")}
+      <div class="form-actions" style="margin-top:8px;">
+        <button type="button" class="btn primary small" id="saveWeeklyBtn">儲存每週提醒</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("saveWeeklyBtn").onclick = async ()=>{
+    const newMap = {};
+    box.querySelectorAll("[data-dow]").forEach(input=>{
+      newMap[input.dataset.dow] = input.value.trim();
+    });
+    showWeeklyEditor = false;
+    await saveWeeklyReminders(newMap);
+  };
 }
 
 function tokenizeLine(line){
