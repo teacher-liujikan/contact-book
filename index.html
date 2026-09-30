@@ -314,22 +314,41 @@
     padding:20px 26px;
     display:flex;
     flex-direction:column;
+    gap:18px;
   }
+  .msg-block{
+    padding-bottom:16px;
+    border-bottom:2px dashed var(--yellow-border);
+  }
+  .msg-block:last-child{border-bottom:none;padding-bottom:0;}
   .message-board h3{
     font-family:var(--font-kai);
-    font-size:20px;
+    font-size:18px;
     color:var(--ink-soft);
-    margin:0 0 12px;
+    margin:0 0 10px;
     display:flex;
     align-items:center;
     gap:8px;
   }
   .message-board .msg-text{
     font-family:var(--font-kai);
-    font-size:32px;
-    line-height:1.7;
+    font-size:26px;
+    line-height:1.6;
     color:var(--ink);
     white-space:pre-wrap;
+  }
+  .msg-edit-input{
+    width:100%;
+    min-height:70px;
+    font-family:var(--font-kai);
+    font-size:22px;
+    line-height:1.5;
+    color:var(--ink);
+    background:rgba(255,255,255,0.6);
+    border:2px dashed var(--sky-deep);
+    border-radius:10px;
+    padding:8px 10px;
+    resize:vertical;
   }
   .message-board.empty{
     align-items:center;
@@ -457,9 +476,11 @@
     .icon-btn{width:32px;height:32px;font-size:14px;}
 
     .entry-body{flex-direction:column;}
-    .message-board{order:-1;flex:none;width:100%;padding:14px 16px;}
+    .message-board{order:-1;flex:none;width:100%;padding:14px 16px;gap:12px;}
+    .msg-block{padding-bottom:10px;}
     .message-board h3{font-size:14px;margin-bottom:6px;}
     .message-board .msg-text{font-size:17px;line-height:1.5;}
+    .msg-edit-input{font-size:15px;min-height:56px;}
     .message-board.empty{font-size:13px;padding:10px 16px;}
 
     .grid-scroll{order:0;width:100%;}
@@ -642,6 +663,7 @@ let draftNote = "";
 let draftMessage = "";
 let currentIndex = 0;
 let dataReady = false;
+let fixedMessage = "";
 
 const weekdayZh = ["日","一","二","三","四","五","六"];
 
@@ -668,6 +690,23 @@ function rocParts(dateStr){
   return { roc: d.getFullYear()-1911, m: d.getMonth()+1, day: d.getDate(), wd: weekdayZh[d.getDay()] };
 }
 
+function getTodayStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function computeDefaultIndex(sortedEntries){
+  const today = getTodayStr();
+  let idx = sortedEntries.findIndex(x=>x.date === today);
+  if(idx !== -1) return idx;
+  idx = sortedEntries.findIndex(x=>x.date < today);
+  if(idx !== -1) return idx;
+  return 0;
+}
+
 async function loadAll(){
   try{
     const snap = await get(dataRef);
@@ -677,17 +716,20 @@ async function loadAll(){
       entries = raw.map(normalizeEntry).filter(Boolean);
       if(parsed.className) className = parsed.className;
       if(parsed.zhuyinDict && typeof parsed.zhuyinDict === "object") zhuyinDict = parsed.zhuyinDict;
+      if(typeof parsed.fixedMessage === "string") fixedMessage = parsed.fixedMessage;
     }
   }catch(err){
     entries = [];
   }
+  const sorted = [...entries].sort((a,b)=> b.date.localeCompare(a.date));
+  currentIndex = computeDefaultIndex(sorted);
   dataReady = true;
   render();
 }
 
 async function persist(){
   try{
-    await set(dataRef, { entries, className, zhuyinDict });
+    await set(dataRef, { entries, className, zhuyinDict, fixedMessage });
   }catch(err){
     alert("儲存失敗，請確認你已經登入，或檢查網路連線後再試一次");
   }
@@ -699,6 +741,11 @@ async function saveClassName(name){
   className = name;
   await persist();
   render();
+}
+
+async function saveFixedMessage(text){
+  fixedMessage = text;
+  await persist();
 }
 
 onAuthStateChanged(auth, (user)=>{
@@ -796,7 +843,7 @@ function renderForm(){
         <div id="zhuyinReview"></div>
       </div>
       <div class="field">
-        <label>老師留言板（大字顯示在畫面左側，學生不用抄）</label>
+        <label>今日臨時留言（大字顯示在畫面左側，學生不用抄；長期固定的提醒請在主畫面「📌 固定提醒」那欄直接編輯）</label>
         <p class="hint">用來提醒等一下要做的事，例如集合地點、要帶的東西提醒、活動流程。</p>
         <textarea id="fMessage" style="min-height:70px;" placeholder="例如：等一下體育課直接在教室穿好運動服，帶水壺到操場集合">${escapeHtml(draftMessage)}</textarea>
       </div>
@@ -989,14 +1036,19 @@ function renderList(){
           </div>` : ``}
       </div>
       <div class="entry-body">
-        ${e.message ? `
-          <div class="message-board">
-            <h3>📢 老師留言板</h3>
-            <div class="msg-text">${escapeHtml(e.message)}</div>
+        <div class="message-board">
+          <div class="msg-block">
+            <h3>📌 固定提醒</h3>
+            ${isEditor
+              ? `<textarea id="fixedMsgInput" class="msg-edit-input" placeholder="長期固定的提醒，例如：每天中午需要帶水壺">${escapeHtml(fixedMessage)}</textarea>`
+              : `<div class="msg-text">${fixedMessage ? escapeHtml(fixedMessage) : "（目前沒有固定提醒）"}</div>`
+            }
           </div>
-        ` : `
-          <div class="message-board empty">（老師還沒有留言）</div>
-        `}
+          <div class="msg-block">
+            <h3>📢 今日臨時留言</h3>
+            <div class="msg-text">${e.message ? escapeHtml(e.message) : "（今天沒有臨時留言）"}</div>
+          </div>
+        </div>
         <div class="grid-scroll">
           <div class="grid-cols" style="height:${52 + MIN_ROWS*76}px;">${colsHtml}</div>
         </div>
@@ -1024,6 +1076,11 @@ function renderList(){
   list.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=> deleteEntry(btn.dataset.del);
   });
+
+  const fixedMsgInput = document.getElementById("fixedMsgInput");
+  if(fixedMsgInput){
+    fixedMsgInput.addEventListener("change", (ev)=> saveFixedMessage(ev.target.value));
+  }
 }
 
 function tokenizeLine(line){
