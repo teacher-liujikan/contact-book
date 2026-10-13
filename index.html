@@ -1255,9 +1255,10 @@ function renderWeeklyEditor(){
 
 function tokenizeLine(line){
   // 英文字母＋數字（像 P10、20）視為一個整體，留在同一格；
+  // 數字中間夾雜連字號（像 1-1、2-3-4）也視為一個整體，留在同一格；
   // 其他字元（中文、標點等）逐字各自一格
   const tokens = [];
-  const re = /[A-Za-z0-9]+|./gs;
+  const re = /[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*|./gs;
   let m;
   while((m = re.exec(line)) !== null){
     tokens.push(m[0]);
