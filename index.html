@@ -403,12 +403,14 @@
   .chk-task-text{font-family:var(--font-kai);font-size:28px;color:var(--ink);flex:1;min-width:0;word-break:break-word;}
   .chk-task-count{font-family:var(--font-kai);font-size:18px;font-weight:700;color:var(--green-deep);white-space:nowrap;}
   .chk-del{width:32px;height:32px;border-radius:50%;border:2px solid var(--ink);background:var(--white);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
-  .chk-nums{display:flex;flex-wrap:wrap;gap:8px;}
-  .chk-num{width:48px;height:48px;border-radius:50%;border:3px solid var(--ink);background:var(--white);font-family:var(--font-kai);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink);}
+  .chk-nums{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px;}
+  .chk-num{min-width:0;border-radius:8px;border:2px solid var(--ink);background:var(--white);font-family:var(--font-kai);font-size:clamp(11px,1.5vw,22px);font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 0 2px;color:var(--ink);line-height:1.1;}
+  .chk-num .ck{font-size:1.1em;color:var(--green-deep);visibility:hidden;line-height:1;}
+  .chk-num.done .ck{visibility:visible;}
   .chk-num:active{transform:scale(0.92);}
   .chk-num:disabled{cursor:default;}
   .chk-num:disabled:active{transform:none;}
-  .chk-num.done{background:var(--green);border-color:var(--green-deep);color:#1c4a12;}
+  .chk-num.done{background:#E6F6DF;border-color:var(--green-deep);color:#1c4a12;}
   .chk-add-row{display:flex;gap:8px;margin-top:4px;}
   .chk-add-row input{flex:1;min-width:0;font-family:var(--font-kai);font-size:16px;padding:8px 10px;border:2px solid var(--yellow-border);border-radius:10px;background:#FFFDF3;}
   .grid-scroll{flex:0 0 auto;overflow-x:auto;overflow-y:hidden;}
@@ -542,8 +544,8 @@
     .message-board.empty{font-size:13px;padding:10px 16px;}
     .chk-task-text{font-size:17px;}
     .chk-task-count{font-size:13px;}
-    .chk-num{width:36px;height:36px;font-size:15px;border-width:2px;}
-    .chk-nums{gap:6px;}
+    .chk-num{font-size:10px;border-width:1px;border-radius:5px;padding:3px 0 1px;}
+    .chk-nums{gap:2px;}
     .chk-empty{font-size:15px;}
 
     .grid-scroll{order:0;width:100%;}
@@ -846,7 +848,7 @@ function renderChecklist(){
   const taskRows = tasks.map(t=>{
     const d = checklist.done[t.id] || {};
     const cnt = STUDENT_NUMS.filter(n=>!!d[n]).length;
-    const nums = STUDENT_NUMS.map(n=>`<button type="button" class="chk-num ${d[n]?'done':''}" data-task="${t.id}" data-num="${n}" ${isEditor?'':'disabled'}>${n}</button>`).join("");
+    const nums = STUDENT_NUMS.map(n=>`<button type="button" class="chk-num ${d[n]?'done':''}" data-task="${t.id}" data-num="${n}" ${isEditor?'':'disabled'}><span>${n}</span><span class="ck">✔</span></button>`).join("");
     return `<div class="chk-task"><div class="chk-task-head"><span class="chk-task-text">${escapeHtml(t.text)}</span><span class="chk-task-count">${cnt}/${STUDENT_NUMS.length}</span>${isEditor?`<button type="button" class="chk-del" data-del-task="${t.id}" title="刪除任務">🗑️</button>`:``}</div><div class="chk-nums">${nums}</div></div>`;
   }).join("");
   box.innerHTML = `
